@@ -1,36 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+### 📋 Kafka-Powered Collaborative Kanban Board
+A real-time, multi-user Kanban board built with Next.js, FastAPI, and Apache Kafka (KRaft mode). This project demonstrates how to use an event-driven architecture to synchronize state across multiple clients instantly.
 
-## Getting Started
+## 🚀 Features
+Real-time Sync: Actions (Add, Move, Delete) in one browser window are instantly reflected in all others.
 
-First, run the development server:
+## Kafka KRaft Mode:
+- Uses modern Kafka without the need for Zookeeper.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## State Persistence: 
+- A backend "Sync Layer" ensures that board state is preserved even after a page refresh.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Connection Monitoring: 
+- Live status indicators for both the FastAPI server and the Kafka broker.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Smooth UX: 
+- Uses @hello-pangea/dnd with Portals to ensure cards don't glitch through columns during drag-and-drop.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+### 📂 Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+kafka-kanban-board/
+├── kanban-kafka-backend/     # FastAPI + Confluent Kafka Python
+│   ├── venv/                 # Python Virtual Environment
+│   └── main.py               # WebSocket & Kafka Consumer/Producer logic
+├── kanban-kafka-frontend/    # Next.js + Tailwind CSS
+│   ├── app/
+│   │   └── components/
+│   │       └── KanbanBoard.js # Core Kanban UI and Logic
+│   └── package.json
+└── docker-compose.yml        # Kafka KRaft Infrastructure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🛠️ Getting Started
+## 1. Infrastructure (Docker)
+First, spin up the Kafka broker. This setup uses KRaft mode, so it only requires a single container.
+    1. Navigate to the root folder.
 
-## Deploy on Vercel
+    2. Run: docker-compose up -d
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+    3. Create the required topic:
+        docker exec -it kafka kafka-topics --create --topic ordersmanagement --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 2. Backend Setup (FastAPI)
+    1. Navigate to the backend directory:
+        cd kanban-kafka-backend
+    2. Activate your virtual environment and install dependencies:
+        # Windows
+        .\venv\Scripts\activate
+        # Linux/Mac
+        source venv/bin/activate
+
+        pip install fastapi uvicorn confluent-kafka
+
+    3. Start the server:
+        uvicorn main:app --reload --port 8000
+
+## 3. Frontend Setup (Next.js)
+    1. Open a new terminal and navigate to the frontend directory:
+        cd kanban-kafka-frontend
+    2. Install dependencies:
+        npm install
+    3. npm run dev
+        Open http://localhost:3000 in your browser.
+
+---
+
+### 📡 How it Works
+## User Action: 
+A user moves a card or adds an order.
+
+## WebSocket Send: 
+The frontend sends a JSON payload to the FastAPI server via a WebSocket.
+
+## Kafka Produce: 
+FastAPI produces that message into the ordersmanagement Kafka topic.
+
+## Kafka Consume: 
+A background worker in FastAPI consumes the message from Kafka.
+
+## Broadcast: 
+The worker broadcasts the message back to all connected WebSocket clients.
+
+## UI Update: 
+Every browser window receives the message and updates its local state accordingly.
+
+
+### Demo Sample Pages:
+## Container
+![alt text](docker-container.png)
+
+## Webpage:
+# Default order shown in two window:
+![Default order shown in two window](image.png)
+
+# Create new order in window 1
+![Create new order in window 1](image-1.png)
+
+# Burger order placed and shown both window
+![Burger order placed and shown both window](image-2.png)
+
+# Mover burger order to analytics column in window 2
+![Mover burger order to analytics column in window 2](image-3.png)
+
+# Burger order moved to analytics column in both window
+![Burger order moved to analytics column in both window](image-4.png)
+
+# Attempt to delete burger in window 2
+![Attempt to delete burger in window 2](image-5.png)
+
+# Burger order deleted in both window
+![Burger order deleted in both window](image-6.png)
